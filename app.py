@@ -40,17 +40,32 @@ def init_langfuse_and_agent():
     return agent, pool
 
 
-def reasoning_output_callback(reasoning_text: str):
+def render_chat_history(messages: list[dict]):
+    for msg in messages:
+        with st.chat_message(msg["role"]):
+            if msg["role"] == "assistant":
+                for output in msg["content"]:
+                    if output["type"] == "reasoning":
+                        render_reasoning_output(output["content"])
+                    elif output["type"] == "code":
+                        render_code_output(output["content"])
+                    elif output["type"] == "output":
+                        render_text_output(output["content"])
+            else:
+                st.markdown(msg["content"])
+
+
+def render_reasoning_output(reasoning_text: str):
     with st.expander("Reasoning"):
         st.markdown(f"{reasoning_text}\n\n")
 
 
-def code_output_callback(code: str):
+def render_code_output(code: str):
     with st.expander("Code"):
         st.code(code, language="python", line_numbers=True)
 
 
-def text_output_callback(output_text: str):
+def render_text_output(output_text: str):
     st.markdown(f"{output_text}\n\n")
 
 
@@ -68,18 +83,7 @@ def main():
     if "session" not in st.session_state:
         st.session_state.session = SQLiteSession(f"conversation_session_{str(uuid.uuid4())}")
 
-    # Render chat history
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            if msg["role"] == "assistant":
-                for output in msg["content"]:
-                    if output["type"] == "reasoning":
-                        with st.expander("Reasoning"):
-                            st.markdown(output["content"])
-                    elif output["type"] == "output":
-                        st.markdown(output["content"])
-            else:
-                st.markdown(msg["content"])
+    render_chat_history(st.session_state.messages)
 
     # User input
     user_input = st.chat_input("Ask me something that may need Python code…")
@@ -99,9 +103,9 @@ def main():
                     pool,
                     user_input,
                     st.session_state.session,
-                    reasoning_output_callback=reasoning_output_callback,
-                    code_output_callback=code_output_callback,
-                    text_output_callback=text_output_callback,
+                    reasoning_output_callback=render_reasoning_output,
+                    code_output_callback=render_code_output,
+                    text_output_callback=render_text_output,
                 ))
 
         st.session_state.messages.append(
