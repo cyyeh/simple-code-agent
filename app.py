@@ -53,12 +53,12 @@ def render_chat_history(messages: list[dict]):
 
 
 def render_reasoning_output(reasoning_text: str):
-    with st.expander("Reasoning"):
+    with st.expander("Reasoning", expanded=True):
         st.markdown(f"{reasoning_text}\n\n")
 
 
 def render_code_output(code: str):
-    with st.expander("Code"):
+    with st.expander("Code", expanded=True):
         st.code(code, language="python", line_numbers=True)
 
 
