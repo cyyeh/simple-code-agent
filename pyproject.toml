@@ -1,0 +1,23 @@
+[project]
+name = "code-agent"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "cyyeh"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+package-mode = false
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "openai-agents[litellm] (>=0.6.2,<0.7.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "langfuse (>=3.10.5,<4.0.0)",
+    "openinference-instrumentation-openai-agents (>=1.4.0,<2.0.0)",
+    "llm-sandbox[docker] (>=0.3.31,<0.4.0)",
+    "streamlit (>=1.52.1,<2.0.0)"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
