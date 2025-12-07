@@ -1,22 +1,15 @@
-import os
 import asyncio
 import atexit
 import uuid
 
 import streamlit as st
+from agents import SQLiteSession
 from dotenv import load_dotenv
-
-from agents import Agent, ModelSettings, Runner, SQLiteSession
-from agents.extensions.models.litellm_model import LitellmModel
 from langfuse import get_client
-from openai.types.shared import Reasoning
 from openinference.instrumentation.openai_agents import OpenAIAgentsInstrumentor
 
-from tools.code_execution_tool import (
-    init_code_execution_pool,
-    execute_python_code,
-    CodeExecutionContext,
-)
+from agent import init_agent, run_agent
+from tools.code_execution_tool import init_code_execution_pool
 
 # -------------------------------------------------------------------
 # One-time setup (env, instrumentation, langfuse)
@@ -41,79 +34,18 @@ def init_langfuse_and_agent():
     # Make sure pool is closed when the process exits (e.g., Ctrl-C on streamlit run)
     atexit.register(lambda: pool.close())
 
-    # Choose model
-    if os.getenv("OPENAI_API_KEY") is not None:
-        model = "gpt-5-mini-2025-08-07"
-    else:
-        model = LitellmModel(
-            model="openai/gpt-oss:20b",
-            base_url=os.getenv("OLLAMA_ENDPOINT"),
-        )
+    # Init agent
+    agent = init_agent()
 
-    code_agent_instruction = (
-        "### ROLE ###\n"
-        "You are a code agent that can write python code to solve problems.\n\n"
-        "### Instructions ###\n"
-        "- ALWAYS reason about the problem first to determine the best approach.\n"
-        "- ALWAYS write `print` statement to return the result of the code execution.\n"
-        "### AVAILABLE TOOLS ###\n"
-        "- execute_python_code: Execute python code in a sandboxed environment and get the result.\n"
-    )
-
-    code_agent = Agent[CodeExecutionContext](
-        name="code-agent",
-        instructions=code_agent_instruction,
-        model=model,
-        model_settings=ModelSettings(
-            max_tokens=4096,
-            reasoning=Reasoning(
-                effort="medium",
-                summary="detailed",
-            ),
-        ),
-        tools=[execute_python_code],
-    )
-
-    return code_agent, pool
+    return agent, pool
 
 
-async def run_agent(
-    code_agent: Agent,
-    pool,
-    user_query: str,
-    session: SQLiteSession,
-) -> tuple[str, str]:
-    """Run the agent asynchronously and return the output text and reasoning text."""
-    result = Runner.run_streamed(
-        code_agent,
-        user_query,
-        context=CodeExecutionContext(pool=pool),
-        session=session,
-    )
+def reasoning_output_callback(reasoning_text: str):
+    with st.expander("Reasoning"):
+        st.markdown(f"{reasoning_text}\n\n")
 
-    reasoning_text = ""
-    output_text = ""
-    async for event in result.stream_events():
-        _reasoning_text = ""
-        _output_text = ""
-        if event.type == "run_item_stream_event":
-            if event.item.type == "reasoning_item":
-                if event.item.raw_item.summary:
-                    for summary in event.item.raw_item.summary:
-                        _reasoning_text += f"{summary.text}\n\n"
-                if _reasoning_text:
-                    with st.expander("Reasoning"):
-                        st.markdown(f"{_reasoning_text}\n\n")
-                    reasoning_text += _reasoning_text
-            if event.item.type == "message_output_item":
-                if event.item.raw_item.content:
-                    for content in event.item.raw_item.content:
-                        _output_text += f"{content.text}\n\n"
-                if _output_text:
-                    st.markdown(f"{_output_text}\n\n")
-                    output_text += _output_text
-    
-    return output_text, reasoning_text
+def output_callback(output_text: str):
+    st.markdown(f"{output_text}\n\n")
 
 
 def main():
@@ -156,6 +88,8 @@ def main():
                     pool,
                     user_input,
                     st.session_state.session,
+                    reasoning_output_callback=reasoning_output_callback,
+                    output_callback=output_callback,
                 ))
 
         st.session_state.messages.append(
