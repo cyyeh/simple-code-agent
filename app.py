@@ -29,7 +29,7 @@ def init_langfuse_and_agent():
         print("WARNING: Langfuse auth failed. Check credentials and host.")
 
     # Init code execution pool once
-    pool = init_code_execution_pool(libraries=["numpy", "pandas"])
+    pool = init_code_execution_pool()
 
     # Make sure pool is closed when the process exits (e.g., Ctrl-C on streamlit run)
     atexit.register(lambda: pool.close())
@@ -44,7 +44,13 @@ def reasoning_output_callback(reasoning_text: str):
     with st.expander("Reasoning"):
         st.markdown(f"{reasoning_text}\n\n")
 
-def output_callback(output_text: str):
+
+def code_output_callback(code: str):
+    with st.expander("Code"):
+        st.code(code, language="python", line_numbers=True)
+
+
+def text_output_callback(output_text: str):
     st.markdown(f"{output_text}\n\n")
 
 
@@ -65,10 +71,15 @@ def main():
     # Render chat history
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            if msg["role"] == "assistant" and "reasoning" in msg and msg["reasoning"]:
-                with st.expander("Reasoning"):
-                    st.markdown(msg["reasoning"])
-            st.markdown(msg["content"])
+            if msg["role"] == "assistant":
+                for output in msg["content"]:
+                    if output["type"] == "reasoning":
+                        with st.expander("Reasoning"):
+                            st.markdown(output["content"])
+                    elif output["type"] == "output":
+                        st.markdown(output["content"])
+            else:
+                st.markdown(msg["content"])
 
     # User input
     user_input = st.chat_input("Ask me something that may need Python code…")
@@ -83,17 +94,18 @@ def main():
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 # We wrap the async agent call in asyncio.run for Streamlit
-                output_text, reasoning_text = asyncio.run(run_agent(
+                outputs = asyncio.run(run_agent(
                     code_agent,
                     pool,
                     user_input,
                     st.session_state.session,
                     reasoning_output_callback=reasoning_output_callback,
-                    output_callback=output_callback,
+                    code_output_callback=code_output_callback,
+                    text_output_callback=text_output_callback,
                 ))
 
         st.session_state.messages.append(
-            {"role": "assistant", "content": output_text, "reasoning": reasoning_text}
+            {"role": "assistant", "content": outputs}
         )
 
 

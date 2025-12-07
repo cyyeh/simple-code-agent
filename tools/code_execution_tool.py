@@ -8,11 +8,15 @@ from llm_sandbox.pool.base import ContainerPoolManager
 
 code_execution_pool = None
 
-def init_code_execution_pool(libraries: list[str] | None = None) -> ContainerPoolManager:
+def init_code_execution_pool() -> ContainerPoolManager:
     global code_execution_pool
 
     if code_execution_pool is not None:
         return code_execution_pool
+
+    image = "docker.io/python:3.12-bullseye"
+    # default libraries to install
+    libraries = []
 
     code_execution_pool = create_pool_manager(
         backend="docker",
@@ -22,11 +26,12 @@ def init_code_execution_pool(libraries: list[str] | None = None) -> ContainerPoo
             enable_prewarming=True,
         ),
         lang="python",
-        image="docker.io/python:3.12-bullseye",
+        skip_environment_setup=False,
+        image=image,
         verbose=True,
     )
 
-    if libraries is not None and len(libraries) > 0:
+    if len(libraries) > 0:
         with SandboxSession(pool=code_execution_pool, verbose=True) as session:
             session.execute_command(f'pip install {" ".join(libraries)}')
 
@@ -39,20 +44,22 @@ class CodeExecutionContext:
 
 
 @function_tool
-async def execute_python_code(ctx: RunContextWrapper[CodeExecutionContext],code: str) -> dict:
+async def execute_python_code(
+    ctx: RunContextWrapper[CodeExecutionContext],
+    code: str,
+) -> dict:
     """
     Give a python code to execute in a sandboxed environment and get the result.
 
     Args:
-        code: The python code to execute.
+        code: The python code to execute. Type: str
 
     Returns:
         A dictionary containing the result of the code execution.
         - success: True if the code executed successfully, False otherwise.
+        - error: The error message if the code execution failed, None otherwise.
         - stdout: The stdout of the code execution.
         - stderr: The stderr of the code execution.
-        - exit_code: The exit code of the code execution.
-        - error: The error message if the code execution failed, None otherwise.
     """
     def _run(code: str) -> dict:
         try:
@@ -61,19 +68,55 @@ async def execute_python_code(ctx: RunContextWrapper[CodeExecutionContext],code:
 
                 return {
                     "success": result.exit_code == 0,
+                    "error": None,
                     "stdout": result.stdout,
                     "stderr": result.stderr,
-                    "exit_code": result.exit_code,
-                    "error": None,
                 }
         except Exception as e:  # noqa: BLE001
             return {
                 "success": False,
                 "error": str(e),
-                "exit_code": -1,
                 "stdout": None,
                 "stderr": None,
             }
 
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _run, code)
+
+
+@function_tool
+async def install_python_libraries(
+    ctx: RunContextWrapper[CodeExecutionContext],
+    libraries: list[str],
+) -> dict:
+    """
+    Install python libraries in the sandboxed environment.
+
+    Args:
+        libraries: The python libraries to install in the sandboxed environment. Type: list[str]
+
+    Returns:
+        A dictionary containing the result of the library installation.
+        - success: True if the libraries installed successfully, False otherwise.
+        - error: The error message if the library installation failed, None otherwise.
+        - stderr: The stderr of the library installation if the library installation failed, None otherwise.
+    """
+    def _install(libraries: list[str]) -> dict:
+        try:
+            with SandboxSession(pool=ctx.context.pool, verbose=True) as session:
+                result = session.execute_command(f'pip install {" ".join(libraries)}')
+
+                return {
+                    "success": result.exit_code == 0,
+                    "error": None,
+                    "stderr": result.stderr if result.exit_code != 0 else None,
+                }
+        except Exception as e:  # noqa: BLE001
+            return {
+                "success": False,
+                "error": str(e),
+                "stderr": None,
+            }
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _install, libraries)
