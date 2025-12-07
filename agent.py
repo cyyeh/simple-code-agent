@@ -30,7 +30,6 @@ def init_agent():
         "- ALWAYS reason about the problem first to determine the best approach.\n"
         "- ALWAYS write `print` statement to return the result of the code execution.\n"
         "- For any package that is not standard python package, you could check if it is available in the sandboxed environment first and then install it if it is not available.\n"
-        "- If any package is not available in the sandboxed environment, you could install it by passing the package name to the libraries argument of the execute_python_code tool.\n"
         "- DON'T show any code in the final text output. Final text output should be human readable and concise.\n\n"
         "### AVAILABLE TOOLS ###\n"
         "- execute_python_code: Execute python code in a sandboxed environment and get the result.\n"
