@@ -1,3 +1,3 @@
-# Code Agent
+# Simple Code Agent
 
-Sample code agent using OpenAI Agent SDK and llm-sandbox under the hood.
+Simple code agent using OpenAI Agent SDK and llm-sandbox under the hood.
