@@ -9,7 +9,7 @@ from langfuse import get_client
 from openinference.instrumentation.openai_agents import OpenAIAgentsInstrumentor
 
 from agent import init_agent, run_agent
-from tools.code_execution_tool import init_code_execution_pool
+from tools.code_execution import init_code_execution_pool
 
 # -------------------------------------------------------------------
 # One-time setup (env, instrumentation, langfuse)

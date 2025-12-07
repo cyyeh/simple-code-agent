@@ -7,7 +7,7 @@ from agents.extensions.models.litellm_model import LitellmModel
 from openai.types.shared import Reasoning
 from openai.types.responses.response_function_tool_call import ResponseFunctionToolCall
 
-from tools.code_execution_tool import (
+from tools.code_execution import (
     CodeExecutionContext,
     execute_python_code,
     install_python_libraries,
