@@ -15,14 +15,6 @@ from tools.code_execution import (
 
 
 def init_agent():
-    if os.getenv("OPENAI_API_KEY") is not None:
-        model = "gpt-5-mini-2025-08-07"
-    else:
-        model = LitellmModel(
-            model="ollama_chat/gpt-oss:20b",
-            base_url=os.getenv("OLLAMA_ENDPOINT"),
-        )
-
     agent_instructions = (
         "### ROLE ###\n"
         "You are a code agent that can write python code to solve problems.\n\n"
@@ -36,19 +28,39 @@ def init_agent():
         "- install_python_libraries: Install python libraries in the sandboxed environment.\n"
     )
 
-    agent = Agent[CodeExecutionContext](
-        name="code-agent",
-        instructions=agent_instructions,
-        model=model,
-        model_settings=ModelSettings(
-            max_tokens=4096,
-            reasoning=Reasoning(
-                effort="medium",
-                summary="detailed",
+    if os.getenv("OPENAI_API_KEY", ""):
+        model_name = os.getenv("OPENAI_MODEL", "gpt-5-mini-2025-08-07")
+        print(f'Using OpenAI model: {model_name}')
+        agent = Agent[CodeExecutionContext](
+            name="code-agent",
+            instructions=agent_instructions,
+            model=model,
+            model_settings=ModelSettings(
+                max_tokens=4096,
+                reasoning=Reasoning(
+                    effort="medium",
+                    summary="detailed",
+                ),
             ),
-        ),
-        tools=[execute_python_code, install_python_libraries],
-    )
+            tools=[execute_python_code, install_python_libraries],
+        )
+    else:
+        model_name = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
+        print(f'Using Ollama model: {model_name}')
+        model = LitellmModel(
+            model=f"openai/{model_name}",
+            base_url=f"{os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434').strip('/')}/v1",
+        )
+
+        agent = Agent[CodeExecutionContext](
+            name="code-agent",
+            instructions=agent_instructions,
+            model=model,
+            model_settings=ModelSettings(
+                max_tokens=4096,
+            ),
+            tools=[execute_python_code, install_python_libraries],
+        )
 
     return agent
 

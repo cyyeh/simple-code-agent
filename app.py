@@ -11,12 +11,6 @@ from openinference.instrumentation.openai_agents import OpenAIAgentsInstrumentor
 from agent import init_agent, run_agent
 from tools.code_execution import init_code_execution_pool
 
-# -------------------------------------------------------------------
-# One-time setup (env, instrumentation, langfuse)
-# -------------------------------------------------------------------
-load_dotenv()
-OpenAIAgentsInstrumentor().instrument()
-
 
 @st.cache_resource
 def init_langfuse_and_agent():
@@ -24,6 +18,9 @@ def init_langfuse_and_agent():
     This function is cached so it only runs once per Streamlit session.
     It sets up Langfuse, the code execution pool, and the code agent.
     """
+    load_dotenv()
+    OpenAIAgentsInstrumentor().instrument()
+
     langfuse = get_client()
     if not langfuse.auth_check():
         print("WARNING: Langfuse auth failed. Check credentials and host.")
