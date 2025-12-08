@@ -1,6 +1,6 @@
 # Simple Code Agent
 
-Using [Streamlit](https://github.com/streamlit/streamlit) to demo simple code agent using [OpenAI Agent SDK](https://github.com/openai/openai-agents-python) and [llm-sandbox](https://github.com/vndee/llm-sandbox) under the hood.
+Using [Streamlit](https://github.com/streamlit/streamlit) to demo simple code agent using [OpenAI Agents SDK](https://github.com/openai/openai-agents-python) and [llm-sandbox](https://github.com/vndee/llm-sandbox) under the hood.
 
 ## Setup
 
