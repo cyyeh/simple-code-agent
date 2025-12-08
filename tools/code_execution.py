@@ -17,6 +17,7 @@ def init_code_execution_pool() -> ContainerPoolManager:
     image = "docker.io/python:3.12-bullseye"
     # default libraries to install
     libraries = []
+    skip_environment_setup = True
 
     code_execution_pool = create_pool_manager(
         backend="docker",
@@ -26,12 +27,12 @@ def init_code_execution_pool() -> ContainerPoolManager:
             enable_prewarming=True,
         ),
         lang="python",
-        skip_environment_setup=False,
+        skip_environment_setup=skip_environment_setup,
         image=image,
         verbose=True,
     )
 
-    if len(libraries) > 0:
+    if len(libraries) > 0 and not skip_environment_setup:
         with SandboxSession(pool=code_execution_pool, verbose=True) as session:
             session.execute_command(f'pip install {" ".join(libraries)}')
 
