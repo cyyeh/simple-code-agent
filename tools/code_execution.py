@@ -14,7 +14,7 @@ def init_code_execution_pool() -> ContainerPoolManager:
     if code_execution_pool is not None:
         return code_execution_pool
 
-    image = "docker.io/python:3.12-bullseye"
+    image = "chihyuyeh/python-data-analytics:0.0.1"
     # default libraries to install
     libraries = []
     skip_environment_setup = True
